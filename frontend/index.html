@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finance Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+    <span class="brand">Finance Tracker</span>
+    <div style="display:flex;gap:0.75rem;align-items:center;">
+      <button id="reset-btn" style="background:none;border:1px solid #3d2020;color:#f87171;padding:0.3rem 0.9rem;border-radius:6px;font-size:0.85rem;cursor:pointer;width:auto;">Reset Data</button>
+      <a href="/upload.html">Upload CSV</a>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Summary Bar -->
+    <section class="summary-bar">
+      <div class="card">
+        <div class="label">Total Spent</div>
+        <div class="value" id="total-spent">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Total Credited</div>
+        <div class="value" id="total-credited">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Active Subscriptions</div>
+        <div class="value" id="sub-count">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Monthly Sub Cost</div>
+        <div class="value" id="sub-cost">—</div>
+      </div>
+    </section>
+
+    <!-- Chart + Subscriptions -->
+    <section class="mid-row">
+      <div class="chart-box">
+        <h2>Spending by Category</h2>
+        <canvas id="spending-chart"></canvas>
+      </div>
+      <div class="subs-box">
+        <h2>Recurring Payments</h2>
+        <table id="sub-table">
+          <thead>
+            <tr>
+              <th>Merchant</th>
+              <th>Amount</th>
+              <th>Frequency</th>
+              <th>Monthly</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="4" style="color:#64748b;padding:1rem;">No data yet — upload a CSV.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Transactions -->
+    <section class="tx-section">
+      <div class="tx-header">
+        <h2>Transactions</h2>
+        <select id="category-filter">
+          <option value="">All Categories</option>
+          <option>Food &amp; Dining</option>
+          <option>Groceries</option>
+          <option>Transport</option>
+          <option>Subscriptions</option>
+          <option>Shopping</option>
+          <option>Health</option>
+          <option>Utilities</option>
+          <option>Travel</option>
+          <option>Entertainment</option>
+          <option>Uncategorized</option>
+        </select>
+      </div>
+      <table id="tx-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody><tr><td colspan="4" style="color:#64748b;padding:1rem;">No transactions yet — <a href="/upload.html" style="color:#7c87f5;">upload a CSV</a>.</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

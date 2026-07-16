@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload CSV — Finance Tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+    <span class="brand">Finance Tracker</span>
+    <a href="/index.html">Dashboard</a>
+  </nav>
+
+  <main>
+    <div class="upload-container">
+      <h1>Upload Bank Statement</h1>
+      <p>Upload a CSV export from Chase, Bank of America, or any standard bank format.</p>
+
+      <div class="drop-zone" id="drop-zone">
+        <div class="icon">📂</div>
+        <div>Drop your CSV here or <strong>click to browse</strong></div>
+        <div class="hint">Supported: Chase, Bank of America, generic CSV</div>
+        <input type="file" id="file-input" accept=".csv">
+      </div>
+
+      <div id="file-name" style="font-size:0.85rem;color:#64748b;margin-bottom:1rem;min-height:1.2em;"></div>
+
+      <button id="upload-btn" disabled>Upload</button>
+      <div id="status" class="status"></div>
+    </div>
+  </main>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const uploadBtn = document.getElementById('upload-btn');
+    const fileNameEl = document.getElementById('file-name');
+    const statusEl = document.getElementById('status');
+
+    let selectedFile = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      setFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+
+    function setFile(file) {
+      if (!file || !file.name.endsWith('.csv')) {
+        showStatus('Please select a .csv file.', 'error');
+        return;
+      }
+      selectedFile = file;
+      fileNameEl.textContent = `Selected: ${file.name}`;
+      uploadBtn.disabled = false;
+      statusEl.style.display = 'none';
+    }
+
+    uploadBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      uploadBtn.disabled = true;
+      showStatus('Uploading and categorizing… this may take a moment.', 'loading');
+
+      const form = new FormData();
+      form.append('file', selectedFile);
+
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Upload failed');
+        window.location.href = '/index.html';
+      } catch (err) {
+        showStatus(`Error: ${err.message}`, 'error');
+        uploadBtn.disabled = false;
+      }
+    });
+
+    function showStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = `status ${type}`;
+    }
+  </script>
+</body>
+</html>

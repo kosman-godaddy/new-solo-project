@@ -21,7 +21,7 @@ Most people have no easy way to understand their spending patterns without manua
 ## Goals
 
 - Parse standard bank statement CSV exports into a normalized format
-- Automatically categorize transactions using the OpenAI API
+- Automatically categorize transactions using the Claude API (Haiku 4.5)
 - Detect recurring payments and tag them as subscriptions
 - Store all transaction data in a PostgreSQL database
 - Display a monthly spending dashboard with charts
@@ -46,7 +46,7 @@ Most people have no easy way to understand their spending patterns without manua
 | Database | PostgreSQL | Industry standard, runs in Docker |
 | ORM | SQLAlchemy | Manages DB models and queries in Python |
 | Containerization | Docker + docker-compose | Full stack runs in one command |
-| External API | OpenAI API | Smart AI categorization via API key in `.env` |
+| External API | Claude API (Anthropic) | Smart AI categorization via API key in `.env` |
 | Charts | Chart.js | Lightweight, works with vanilla JS, no build step needed |
 
 ---
@@ -64,8 +64,8 @@ Three Docker containers managed by docker-compose:
 │                 │                   │       │          │              │             │
 └─────────────────┘                   └───────┼──────────┘              └─────────────┘
                                               │
-                                              ▼ OPENAI_API_KEY
-                                       OpenAI API
+                                              ▼ ANTHROPIC_API_KEY
+                                       Claude API (Haiku 4.5)
                                        (categorization)
 ```
 
@@ -120,18 +120,18 @@ User uploads a CSV exported from their bank via a file input on the upload page.
 
 ---
 
-### 2. AI Categorization (OpenAI API)
+### 2. AI Categorization (Claude API)
 
-Instead of a static keyword list, transaction descriptions are sent to the OpenAI API which returns a category. This handles the messy, abbreviated descriptions banks actually export.
+Instead of a static keyword list, transaction descriptions are sent to the Claude API (Haiku 4.5) which returns a category. This handles the messy, abbreviated descriptions banks actually export.
 
 **How it works:**
 1. On upload, extract the unique merchant names from the parsed transactions
-2. For each merchant not already in the categories cache, call the OpenAI API
+2. For each merchant not already in the categories cache, call the Claude API
 3. Ask it to return one of the predefined category names
 4. Save the merchant → category mapping to the database (so the same merchant is never re-sent)
 5. Apply the cached category to all matching transactions
 
-**Prompt sent to OpenAI:**
+**Prompt sent to Claude:**
 ```
 You are a personal finance categorizer. Given a bank transaction description,
 return exactly one of these categories:
@@ -144,7 +144,7 @@ Transaction description: "{description}"
 Return only the category name, nothing else.
 ```
 
-**API key:** Stored in `.env` as `OPENAI_API_KEY`, loaded via python-dotenv. Never committed to git.
+**API key:** Stored in `.env` as `ANTHROPIC_API_KEY`, loaded via python-dotenv. Never committed to git.
 
 **Cost note:** Caching means you only pay per unique merchant, not per transaction.
 
@@ -222,7 +222,7 @@ DELETE /transactions            Clear all transactions (for re-uploading a new f
 ```
 finance-tracker/
 ├── docker-compose.yml
-├── .env                            # OPENAI_API_KEY, DATABASE_URL (never commit this)
+├── .env                            # ANTHROPIC_API_KEY, DATABASE_URL (never commit this)
 ├── .env.example                    # Template with empty values (commit this)
 ├── .gitignore
 │
@@ -231,7 +231,7 @@ finance-tracker/
 │   ├── requirements.txt
 │   ├── main.py                     # FastAPI app, route definitions
 │   ├── parser.py                   # CSV ingestion and normalization
-│   ├── categorizer.py              # OpenAI API calls, caching logic
+│   ├── categorizer.py              # Claude API calls, caching logic
 │   ├── recurring.py                # Recurring payment detection algorithm
 │   ├── models.py                   # SQLAlchemy DB models
 │   └── database.py                 # DB connection setup
@@ -282,7 +282,7 @@ services:
 
 ```
 # .env (never commit)
-OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
 DATABASE_URL=postgresql://user:password@db:5432/finance
 ```
 
@@ -298,7 +298,7 @@ DATABASE_URL=postgresql://user:password@db:5432/finance
 - [ ] `GET /transactions` endpoint — returns stored transactions as JSON
 
 ### Phase 2 — Categorization + Recurring Detection
-- [ ] Integrate OpenAI API for categorization
+- [ ] Integrate Claude API (Haiku 4.5) for categorization
 - [ ] Cache merchant → category mappings in the database
 - [ ] Build recurring payment detection algorithm
 - [ ] `GET /subscriptions` endpoint
@@ -334,5 +334,5 @@ DATABASE_URL=postgresql://user:password@db:5432/finance
 ## Open Questions
 
 - Which bank formats should be supported on day one? Recommend Chase + generic fallback.
-- Use OpenAI GPT-3.5-turbo (cheaper) or GPT-4o-mini for categorization?
+- Use claude-haiku-4-5 for categorization (decided: yes)
 - Should the delete/reset endpoint be protected in any way, or is it fine as-is for a local tool?
