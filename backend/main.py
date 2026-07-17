@@ -16,10 +16,12 @@ from parser import parse_csv
 from categorizer import categorize_transactions
 from recurring import detect_recurring
 
+# Create all database tables if they don't exist yet
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Finance Tracker")
 
+# Allow the frontend to make requests to the backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,6 +31,7 @@ app.add_middleware(
 
 
 def serialize(row) -> dict:
+    # Convert a database row into a plain dictionary so it can be sent as JSON
     result = {}
     for col in row.__table__.columns:
         val = getattr(row, col.name)
@@ -44,11 +47,13 @@ def serialize(row) -> dict:
 
 @app.post("/upload")
 async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    # Read the uploaded file, parse it, categorize each transaction, then save to the database
     content = await file.read()
     transactions = parse_csv(io.StringIO(content.decode("utf-8")))
 
     categorize_transactions(transactions, db)
 
+    # Only insert transactions that aren't already in the database
     inserted = 0
     for t in transactions:
         exists = db.query(models.Transaction).filter_by(
@@ -59,6 +64,8 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
             inserted += 1
 
     db.commit()
+
+    # Check for recurring payments after every upload
     detect_recurring(db)
 
     return {"inserted": inserted, "total": len(transactions)}
@@ -66,6 +73,7 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
 
 @app.get("/transactions")
 def get_transactions(category: str = None, db: Session = Depends(get_db)):
+    # Return all transactions, optionally filtered by category
     q = db.query(models.Transaction)
     if category:
         q = q.filter(models.Transaction.category == category)
@@ -74,6 +82,7 @@ def get_transactions(category: str = None, db: Session = Depends(get_db)):
 
 @app.put("/transactions/{id}")
 def update_transaction(id: str, body: dict, db: Session = Depends(get_db)):
+    # Update the category of a single transaction
     t = db.query(models.Transaction).filter_by(id=id).first()
     if not t:
         raise HTTPException(status_code=404, detail="Not found")
@@ -84,6 +93,7 @@ def update_transaction(id: str, body: dict, db: Session = Depends(get_db)):
 
 @app.get("/summary")
 def get_summary(db: Session = Depends(get_db)):
+    # Return the total amount spent per category
     rows = (
         db.query(models.Transaction.category, func.sum(models.Transaction.amount))
         .group_by(models.Transaction.category)
@@ -94,12 +104,14 @@ def get_summary(db: Session = Depends(get_db)):
 
 @app.get("/subscriptions")
 def get_subscriptions(db: Session = Depends(get_db)):
+    # Return all transactions that were detected as recurring payments
     rows = db.query(models.Transaction).filter_by(is_recurring=True).all()
     return [serialize(row) for row in rows]
 
 
 @app.get("/export")
 def export_transactions(db: Session = Depends(get_db)):
+    # Build a CSV file from all transactions and send it as a download
     rows = db.query(models.Transaction).order_by(models.Transaction.date.desc()).all()
     output = io.StringIO()
     writer = csv.writer(output)
@@ -116,6 +128,7 @@ def export_transactions(db: Session = Depends(get_db)):
 
 @app.delete("/transactions")
 def clear_transactions(db: Session = Depends(get_db)):
+    # Delete all transactions from the database
     db.query(models.Transaction).delete()
     db.commit()
     return {"ok": True}

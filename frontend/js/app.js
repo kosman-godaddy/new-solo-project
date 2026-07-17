@@ -1,5 +1,6 @@
 const API = '/api';
 
+// All valid categories a transaction can belong to
 const CATEGORIES = [
   'Food & Dining', 'Groceries', 'Transport', 'Subscriptions',
   'Shopping', 'Health', 'Utilities', 'Travel', 'Entertainment',
@@ -7,6 +8,7 @@ const CATEGORIES = [
 ];
 
 async function loadDashboard() {
+  // Fetch all data from the backend at the same time, then render everything
   const [summary, subscriptions, transactions] = await Promise.all([
     fetch(`${API}/summary`).then(r => r.json()),
     fetch(`${API}/subscriptions`).then(r => r.json()),
@@ -20,6 +22,7 @@ async function loadDashboard() {
 }
 
 function renderSummary(summary, subscriptions) {
+  // Add up all debits for total spent, all credits for total received
   const spent = summary.filter(r => r.total < 0).reduce((s, r) => s + Math.abs(r.total), 0);
   const credited = summary.filter(r => r.total > 0).reduce((s, r) => s + r.total, 0);
 
@@ -32,6 +35,7 @@ function renderSummary(summary, subscriptions) {
     return true;
   });
 
+  // Convert each subscription to a monthly cost based on its frequency
   const monthlyEst = uniqueSubs.reduce((sum, t) => {
     const amt = Math.abs(t.amount);
     if (t.frequency === 'monthly') return sum + amt;
@@ -48,6 +52,7 @@ function renderSummary(summary, subscriptions) {
 }
 
 function renderSubscriptions(subscriptions) {
+  // Remove duplicate merchants and sort by highest amount
   const seen = new Set();
   const unique = subscriptions.filter(t => {
     const key = t.description.toLowerCase();
@@ -81,6 +86,8 @@ let allTransactions = [];
 
 function renderTransactions(transactions, filterCategory = '') {
   allTransactions = transactions;
+
+  // If a category filter is selected, only show matching transactions
   const filtered = filterCategory
     ? transactions.filter(t => t.category === filterCategory)
     : transactions;
@@ -104,16 +111,19 @@ function renderTransactions(transactions, filterCategory = '') {
     </tr>
   `).join('');
 
+  // Make each category label clickable to open the edit dropdown
   document.querySelectorAll('.category-cell').forEach(cell => {
     cell.addEventListener('click', () => openCategoryEdit(cell));
   });
 }
 
 function openCategoryEdit(cell) {
+  // Don't open a second dropdown if one is already open
   if (cell.querySelector('select')) return;
   const current = cell.dataset.category;
   const id = cell.dataset.id;
 
+  // Build a dropdown with all available categories
   const select = document.createElement('select');
   CATEGORIES.forEach(cat => {
     const opt = document.createElement('option');
@@ -134,6 +144,7 @@ function openCategoryEdit(cell) {
 
   select.addEventListener('change', async () => {
     const newCat = select.value;
+    // Save the new category to the database
     await fetch(`${API}/transactions/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -143,16 +154,19 @@ function openCategoryEdit(cell) {
     restore(newCat);
   });
 
+  // If the user clicks away without changing, restore the original label
   select.addEventListener('blur', () => restore(current));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loadDashboard();
 
+  // Filter the transaction table when a category is selected
   document.getElementById('category-filter').addEventListener('change', e => {
     renderTransactions(allTransactions, e.target.value);
   });
 
+  // Clear all data when the reset button is clicked
   document.getElementById('reset-btn').addEventListener('click', async () => {
     if (!confirm('Clear all transaction data?')) return;
     await fetch(`${API}/transactions`, { method: 'DELETE' });
