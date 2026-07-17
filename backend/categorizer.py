@@ -1,17 +1,19 @@
+import os
 import anthropic
 import models
 from sqlalchemy.orm import Session
 
-client = anthropic.Anthropic()
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 CATEGORIES = [
     "Food & Dining", "Groceries", "Transport", "Subscriptions",
-    "Shopping", "Health", "Utilities", "Travel", "Entertainment", "Uncategorized"
+    "Shopping", "Health", "Utilities", "Travel", "Entertainment",
+    "Income", "Transfers", "Uncategorized"
 ]
 
 PROMPT = """You are a personal finance categorizer. Given a bank transaction description, return exactly one of these categories:
 
-Food & Dining, Groceries, Transport, Subscriptions, Shopping, Health, Utilities, Travel, Entertainment, Uncategorized
+Food & Dining, Groceries, Transport, Subscriptions, Shopping, Health, Utilities, Travel, Entertainment, Income, Transfers, Uncategorized
 
 Transaction description: "{description}"
 
@@ -27,7 +29,8 @@ def _call_claude(merchant: str) -> str:
         )
         category = response.content[0].text.strip()
         return category if category in CATEGORIES else "Uncategorized"
-    except Exception:
+    except Exception as e:
+        print(f"[categorizer error] {e}")
         return "Uncategorized"
 
 

@@ -13,10 +13,15 @@ function renderChart(summary) {
 
   if (!spending.length) return;
 
+  const total = spending.reduce((s, r) => s + Math.abs(r.total), 0);
+
   chartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: spending.map(r => r.category),
+      labels: spending.map(r => {
+        const pct = ((Math.abs(r.total) / total) * 100).toFixed(1);
+        return `${r.category}  ${pct}%`;
+      }),
       datasets: [{
         data: spending.map(r => Math.abs(r.total)),
         backgroundColor: PALETTE,
@@ -33,7 +38,10 @@ function renderChart(summary) {
         },
         tooltip: {
           callbacks: {
-            label: ctx => ` ${ctx.label}: $${ctx.raw.toFixed(2)}`
+            label: ctx => {
+              const pct = ((ctx.raw / total) * 100).toFixed(1);
+              return ` $${ctx.raw.toFixed(2)} (${pct}%)`;
+            }
           }
         }
       }

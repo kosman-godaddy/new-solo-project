@@ -2,7 +2,8 @@ const API = '/api';
 
 const CATEGORIES = [
   'Food & Dining', 'Groceries', 'Transport', 'Subscriptions',
-  'Shopping', 'Health', 'Utilities', 'Travel', 'Entertainment', 'Uncategorized'
+  'Shopping', 'Health', 'Utilities', 'Travel', 'Entertainment',
+  'Income', 'Transfers', 'Uncategorized'
 ];
 
 async function loadDashboard() {

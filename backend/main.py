@@ -1,10 +1,12 @@
 import io
+import csv
 import uuid
 from decimal import Decimal
 from datetime import date, datetime
 
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -94,6 +96,22 @@ def get_summary(db: Session = Depends(get_db)):
 def get_subscriptions(db: Session = Depends(get_db)):
     rows = db.query(models.Transaction).filter_by(is_recurring=True).all()
     return [serialize(row) for row in rows]
+
+
+@app.get("/export")
+def export_transactions(db: Session = Depends(get_db)):
+    rows = db.query(models.Transaction).order_by(models.Transaction.date.desc()).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Date", "Description", "Category", "Amount"])
+    for t in rows:
+        writer.writerow([t.date.isoformat(), t.description, t.category, t.amount])
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=transactions.csv"},
+    )
 
 
 @app.delete("/transactions")
